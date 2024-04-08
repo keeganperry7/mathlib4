@@ -3,6 +3,7 @@ Copyright (c) 2020 Fox Thomson. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Fox Thomson
 -/
+import Mathlib.Computability.EpsilonNFA
 import Mathlib.Computability.Language
 
 #align_import computability.regular_expressions from "leanprover-community/mathlib"@"369525b73f229ccd76a6ec0e0e0bf2be57599768"
@@ -442,5 +443,33 @@ theorem matches'_map (f : α → β) :
     simp_rw [← map_pow]
     exact image_iUnion.symm
 #align regular_expression.matches_map RegularExpression.matches'_map
+
+universe v
+
+variable {σ : Type v}
+
+def toεNFA : RegularExpression α → Σ σ, εNFA α σ
+  | 0 => ⟨Empty, 0⟩
+  | 1 => ⟨Unit, 1⟩
+  | char a => ⟨_, εNFA.char a⟩
+  | P + Q => ⟨_, P.toεNFA.2.add Q.toεNFA.2⟩
+  | comp P Q => ⟨_, P.toεNFA.2.mul Q.toεNFA.2⟩
+  | star P => let ⟨σ, P'⟩ := P.toεNFA ; ⟨Option σ, P'.star⟩
+
+theorem toεNFA_correct : ∀(R : RegularExpression α), R.toεNFA.2.accepts = R.matches'
+  | 0 => εNFA.accepts_zero
+  | 1 => εNFA.accepts_one
+  | char a => by
+    rw [matches'_char]
+    exact εNFA.accepts_char
+  | P + Q => by
+    rw [matches'_add, ←toεNFA_correct, ←toεNFA_correct]
+    exact εNFA.accepts_add _ _
+  | comp P Q => by
+    rw [comp_def, matches'_mul, ←toεNFA_correct, ←toεNFA_correct]
+    exact εNFA.accepts_mul _ _
+  | star P => by
+    rw [matches'_star, ←P.toεNFA_correct]
+    exact εNFA.accepts_star _
 
 end RegularExpression

@@ -232,6 +232,30 @@ instance : Inhabited (εNFA α σ) :=
 
 variable (P : εNFA α σ) (Q : εNFA α σ')
 
+def char [DecidableEq α] (a : α) : εNFA α (Option Unit) :=
+  {
+    step := fun s b => if a ∈ b ∧ s = none then { some () } else ∅
+    start := univ
+    accept := univ
+  }
+
+def add : εNFA α (σ × σ') :=
+{
+  step := fun s a => P.step s.1 a ×ˢ Q.step s.2 a
+  start := P.start ×ˢ Q.start
+  accept := { a | a.1 ∈ P.accept ∨ a.2 ∈ Q.accept}
+}
+
+
+def mul : εNFA α (σ × σ') :=
+{
+  step := fun s a => P.step s.1 a ×ˢ Q.step s.2 a
+  start := P.start ×ˢ Q.start
+  accept := P.accept ×ˢ Q.accept
+}
+
+def star (P : εNFA α σ) : εNFA α (Option σ) := sorry
+
 @[simp]
 theorem step_zero (s a) : (0 : εNFA α σ).step s a = ∅ :=
   rfl
@@ -261,5 +285,24 @@ theorem accept_zero : (0 : εNFA α σ).accept = ∅ :=
 theorem accept_one : (1 : εNFA α σ).accept = univ :=
   rfl
 #align ε_NFA.accept_one εNFA.accept_one
+
+@[simp]
+theorem accepts_zero : (0 : εNFA α σ).accepts = 0 := sorry
+
+@[simp]
+theorem accepts_one : (1 : εNFA α σ).accepts = 1 := sorry
+
+@[simp]
+theorem accepts_char [DecidableEq α] : (char a).accepts = {[a]} := sorry
+
+@[simp]
+theorem accepts_add : (P.add Q).accepts = P.accepts + Q.accepts := sorry
+
+@[simp]
+theorem accepts_mul : (P.mul Q).accepts = P.accepts * Q.accepts := sorry
+
+@[simp]
+theorem accepts_star : P.star.accepts = P.accepts∗ := sorry
+
 
 end εNFA
