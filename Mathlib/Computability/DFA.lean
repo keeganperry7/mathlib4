@@ -91,10 +91,15 @@ theorem evalFrom_of_append (start : σ) (x y : List α) :
   x.foldl_append _ _ y
 #align DFA.eval_from_of_append DFA.evalFrom_of_append
 
+@[simp]
+theorem evalFrom_cons (s : σ) (x : List α) (a : α) : M.evalFrom s (a :: x) = M.evalFrom (M.step s a) x :=
+List.foldl_cons _ _
+
 /-- `M.accepts` is the language of `x` such that `M.eval x` is an accept state. -/
 def accepts : Language α := {x | M.eval x ∈ M.accept}
 #align DFA.accepts DFA.accepts
 
+@[simp]
 theorem mem_accepts (x : List α) : x ∈ M.accepts ↔ M.evalFrom M.start x ∈ M.accept := by rfl
 #align DFA.mem_accepts DFA.mem_accepts
 
@@ -165,5 +170,38 @@ theorem pumping_lemma [Fintype σ] {x : List α} (hx : x ∈ M.accepts)
   have h := M.evalFrom_of_pow hb hb'
   rwa [mem_accepts, evalFrom_of_append, evalFrom_of_append, h, hc]
 #align DFA.pumping_lemma DFA.pumping_lemma
+
+variable {σ' : Type v} (P : DFA α σ) (Q : DFA α σ')
+
+def add : DFA α (σ × σ') :=
+{
+  step := fun ⟨s, t⟩ a => ⟨P.step s a, Q.step t a⟩
+  start := ⟨P.start, Q.start⟩
+  accept := { a | a.1 ∈ P.accept ∨ a.2 ∈ Q.accept }
+}
+
+@[simp]
+theorem step_add (s t a) : (P.add Q).step (s, t) a = (P.step s a, Q.step t a) :=
+  rfl
+
+@[simp]
+theorem start_add : (P.add Q).start = (P.start, Q.start) := rfl
+
+@[simp]
+theorem accept_add (s t) : (s, t) ∈ (P.add Q).accept ↔ s ∈ P.accept ∨ t ∈ Q.accept :=
+  Iff.refl _
+
+@[simp]
+theorem evalFrom_add (s t) (a : List α) :
+  evalFrom (P.add Q) (s, t) a = (evalFrom P s a, evalFrom Q t a) := by
+  induction a generalizing s t with
+  | nil => tauto
+  | cons _ _ ih => simp [ih]
+
+@[simp]
+theorem accepts_add : (P.add Q).accepts = P.accepts + Q.accepts := by
+  ext
+  rw [Language.mem_add]
+  simp
 
 end DFA
