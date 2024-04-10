@@ -444,21 +444,18 @@ theorem matches'_map (f : α → β) :
     exact image_iUnion.symm
 #align regular_expression.matches_map RegularExpression.matches'_map
 
-universe v
-
-variable {σ : Type v}
-
-def toεNFA : RegularExpression α → Σ σ, εNFA α σ
+def toεNFA : RegularExpression α → Σ σ , εNFA α σ
   | 0 => ⟨Empty, 0⟩
   | 1 => ⟨Unit, 1⟩
   | char a => ⟨_, εNFA.char a⟩
   | P + Q => ⟨_, P.toεNFA.2.add Q.toεNFA.2⟩
-  | comp P Q => ⟨_, P.toεNFA.2.mul Q.toεNFA.2⟩
+  -- | comp P Q => ⟨_, P.toεNFA.2.mul Q.toεNFA.2⟩
+  | comp P Q => sorry
   | star P => let ⟨σ, P'⟩ := P.toεNFA ; ⟨Option σ, P'.star⟩
 
 theorem toεNFA_correct : ∀(R : RegularExpression α), R.toεNFA.2.accepts = R.matches'
   | 0 => εNFA.accepts_zero
-  | 1 => εNFA.accepts_one
+  | 1 => εNFA.accepts_one Unit
   | char a => by
     rw [matches'_char]
     exact εNFA.accepts_char
@@ -467,7 +464,8 @@ theorem toεNFA_correct : ∀(R : RegularExpression α), R.toεNFA.2.accepts = R
     exact εNFA.accepts_add _ _
   | comp P Q => by
     rw [comp_def, matches'_mul, ←toεNFA_correct, ←toεNFA_correct]
-    exact εNFA.accepts_mul _ _
+    sorry
+    -- exact εNFA.accepts_mul _ _
   | star P => by
     rw [matches'_star, ←P.toεNFA_correct]
     exact εNFA.accepts_star _

@@ -237,14 +237,17 @@ variable (P : εNFA α σ) (Q : εNFA α σ')
 
 def char [DecidableEq α] (a : α) : εNFA α (Option Unit) :=
   {
-    step := fun s b => if a ∈ b ∧ s = none then { some () } else ∅
-    start := univ
-    accept := univ
+    step := fun s =>
+      match s with
+      | none => fun b => if a ∈ b then { some () } else ∅
+      | some _ => fun _ => ∅
+    start := { none }
+    accept := { some () }
   }
 
 def add : εNFA α (Set σ × Set σ') := (P.toNFA.toDFA.add Q.toNFA.toDFA).toNFA.toεNFA
 
-def mul [DecidablePred P.accept.Mem] : εNFA α (σ ⊕ σ') :=
+def mul [DecidablePred (· ∈ P.accept)] : εNFA α (σ ⊕ σ') :=
 {
   step := fun s a =>
     match s with
@@ -277,17 +280,37 @@ theorem step_one (s a) : (1 : εNFA α σ).step s a = ∅ :=
 #align ε_NFA.step_one εNFA.step_one
 
 @[simp]
-theorem step_mul_left_not_accept [DecidablePred P.accept.Mem] (a : α) :
+theorem step_char_none_left [DecidableEq α] (a : α) (b : Option α) :
+  (char a).step none b = if a ∈ b then { some () } else ∅ :=
+  rfl
+
+@[simp]
+theorem step_char_some [DecidableEq α] (a : α) (b : Option α) (s : Unit) :
+  (char a).step (some s) b = ∅ := rfl
+
+@[simp]
+theorem step_char_none_some [DecidableEq α] (a : α) :
+  (char a).step none (some a) = { some () } := if_pos rfl
+
+@[simp]
+theorem step_char_none_right [DecidableEq α] (a : α) (s : Option Unit) :
+  (char a).step s none = ∅ := by
+  match s with
+  | none => simp
+  | some s => rfl
+
+@[simp]
+theorem step_mul_left_not_accept [DecidablePred (· ∈ P.accept)] (a : α) :
   ∀s ∉ P.accept, (P.mul Q).step (Sum.inl s) a = (Sum.inl '' P.step s a) := by
   intros _ _
   rfl
 
 @[simp]
-theorem step_mul_left_some [DecidablePred P.accept.Mem] :
+theorem step_mul_left_some [DecidablePred (· ∈ P.accept)] :
   (P.mul Q).step (Sum.inl s) (some a) = (Sum.inl '' P.step s (some a)) := rfl
 
 @[simp]
-theorem step_mul_left_none_accept [DecidablePred P.accept.Mem] :
+theorem step_mul_left_none_accept [DecidablePred (· ∈ P.accept)] :
   ∀s ∈ P.accept, (P.mul Q).step (Sum.inl s) none = (Sum.inl '' P.step s none) ∪ (Sum.inr '' Q.start) := by
   intros _ h
   unfold mul
@@ -296,7 +319,7 @@ theorem step_mul_left_none_accept [DecidablePred P.accept.Mem] :
   exact h
 
 @[simp]
-theorem step_mul_right [DecidablePred P.accept.Mem] (s : σ') (a : α) :
+theorem step_mul_right [DecidablePred (· ∈ P.accept)] (s : σ') (a : α) :
   (P.mul Q).step (Sum.inr s) a = (Sum.inr '' Q.step s a) := rfl
 
 @[simp]
@@ -315,7 +338,10 @@ theorem start_one : (1 : εNFA α σ).start = univ :=
 #align ε_NFA.start_one εNFA.start_one
 
 @[simp]
-theorem start_mul [DecidablePred P.accept.Mem] : (P.mul Q).start = (Sum.inl '' P.start) := rfl
+theorem start_char [DecidableEq α] (a : α) : (char a).start = { none } := rfl
+
+@[simp]
+theorem start_mul [DecidablePred (· ∈ P.accept)] : (P.mul Q).start = (Sum.inl '' P.start) := rfl
 
 @[simp]
 theorem accept_zero : (0 : εNFA α σ).accept = ∅ :=
@@ -327,25 +353,21 @@ theorem accept_one : (1 : εNFA α σ).accept = univ :=
   rfl
 #align ε_NFA.accept_one εNFA.accept_one
 
-theorem accept_char [DecidableEq α] (a : α) : (char a).accept = univ := rfl
+@[simp]
+theorem accept_char [DecidableEq α] (a : α) : (char a).accept = { some () } := rfl
 
 @[simp]
-theorem accept_mul [DecidablePred P.accept.Mem] :
+theorem accept_mul [DecidablePred (· ∈ P.accept)] :
   (P.mul Q).accept = (Sum.inr '' Q.accept) :=
   rfl
 
+@[simp]
 theorem evalFrom_one_cons (s : Set σ) (x : List α) (a : α) :
   (1 : εNFA α σ).evalFrom s (a :: x) = ∅ := by
     induction x using List.reverseRecOn with
     | nil => simp
     | append_singleton xs x _ =>
       rw [←List.cons_append, evalFrom_append_singleton, stepSet_one]
-
--- theorem εClosure_concat_right [DecidablePred P.accept.Mem] (S : Set σ') :
---   (P.concat Q).εClosure (Sum.inr '' S) = Sum.inr '' Q.εClosure S ∪ Sum.inl '' P.accept := sorry
-
--- theorem evalFrom_concat_right [DecidablePred P.accept.Mem] (s : Set σ') (a : List α):
---   (P.concat Q).evalFrom (Sum.inr '' s) a = Sum.inr '' (Q.evalFrom s a) := sorry
 
 @[simp]
 theorem accepts_zero : (0 : εNFA α σ).accepts = 0 := by
@@ -354,32 +376,51 @@ theorem accepts_zero : (0 : εNFA α σ).accepts = 0 := by
   rw [Language.zero_def]
 
 @[simp]
-theorem accepts_one [Nonempty σ] : (1 : εNFA α σ).accepts = 1 := by
+theorem accepts_one (σ : Type v) [Nonempty σ] : (1 : εNFA α σ).accepts = 1 := by
   ext x
   rw [Language.mem_one]
   simp
   cases x
   . simp
   . simp
-    rw [evalFrom_one_cons]
-    tauto
+
+@[simp]
+theorem εClosure_char [DecidableEq α] (S : Set (Option Unit)) (a : α) :
+  (char a).εClosure S = S := by
+  ext x
+  constructor
+  intro h
+  cases' h with _ h1
+  exact h1
+  simp at *
+  intro h
+  have h1 : S ⊆ εClosure (char a) S := subset_εClosure _ _
+  exact h1 h
 
 @[simp]
 theorem accepts_char [DecidableEq α] : (char a).accepts = {[a]} := by
   ext x
   rw [mem_singleton_iff]
   constructor
+  simp
+  intro h
+  cases' x with x xs
+  simp at *
+  cases' xs with y ys
+  simp at *
+  exact h
+  simp
+  -- need to prove that evalFrom (char a) {none} (x :: y :: ys) = ∅
   sorry
   sorry
 
-@[simp]
 theorem accepts_add : (P.add Q).accepts = P.accepts + Q.accepts := by
   rw [add, NFA.toεNFA_correct, DFA.toNFA_correct]
   repeat rw [←toNFA_correct, ←NFA.toDFA_correct]
   rw [←DFA.accepts_add P.toNFA.toDFA Q.toNFA.toDFA]
 
 @[simp]
-theorem accepts_mul [DecidablePred P.accept.Mem] : (P.mul Q).accepts = P.accepts * Q.accepts := by
+theorem accepts_mul [DecidablePred (· ∈ P.accept)] : (P.mul Q).accepts = P.accepts * Q.accepts := by
   ext x
   simp
   rw [Language.mem_mul]
