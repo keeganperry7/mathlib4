@@ -397,19 +397,20 @@ theorem εClosure_char [DecidableEq α] (S : Set (Option Unit)) (a : α) :
   (char a).εClosure S = S := by
   ext x
   constructor
-  intro h
-  cases' h with _ h1
-  exact h1
-  simp at *
-  intro h
-  have h1 : S ⊆ εClosure (char a) S := subset_εClosure _ _
-  exact h1 h
+  . intro h
+    cases' h with _ h1
+    . exact h1
+    . simp at *
+  . intro h
+    have h1 : S ⊆ εClosure (char a) S := subset_εClosure _ _
+    exact h1 h
 
 @[simp]
 theorem stepSet_char_none [DecidableEq α] (a : α) : (char a).stepSet { none } a = { some () } := by
   unfold stepSet
   simp
 
+@[simp]
 theorem stepSet_char_none_ne [DecidableEq α] (a : α) :
   ∀ b ≠ a, (char a).stepSet { none } b = ∅ := by
   unfold stepSet
@@ -435,31 +436,25 @@ theorem foldl_stepSet_char_empty [DecidableEq α] (x : List α) (a : α) :
 theorem evalFrom_char_cons_cons [DecidableEq α] (x : List α) (a b c : α) :
   (char a).evalFrom { none } (b :: c :: x) = ∅ := by
   by_cases h : b = a
-  rw [h]
-  unfold evalFrom
-  simp
-  unfold evalFrom
-  simp
-  rw [stepSet_char_none_ne, stepSet_empty]
-  simp
-  exact h
+  . rw [h]
+    unfold evalFrom
+    simp
+  . unfold evalFrom
+    simp
+    rw [stepSet_char_none_ne, stepSet_empty]
+    simp
+    exact h
 
 @[simp]
 theorem accepts_char [DecidableEq α] : (char a).accepts = {[a]} := by
   ext x
   rw [mem_singleton_iff]
-  constructor
   simp
-  intro h
-  cases' x with x xs
-  simp at *
-  cases' xs with y ys
-  simp at *
-  exact h
-  simp at *
-  intro h
-  rw [h]
-  simp
+  cases' x with _ xs
+  . simp
+  . cases xs
+    . simp
+    . simp
 
 theorem accepts_add : (P.add Q).accepts = P.accepts + Q.accepts := by
   rw [add, NFA.toεNFA_correct, DFA.toNFA_correct]
