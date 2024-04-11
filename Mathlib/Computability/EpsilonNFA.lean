@@ -293,6 +293,14 @@ theorem step_char_none_some [DecidableEq α] (a : α) :
   (char a).step none (some a) = { some () } := if_pos rfl
 
 @[simp]
+theorem step_char_none_some_ne [DecidableEq α] (a : α) :
+  ∀ b, a ∉ b → (char a).step none b = ∅ := by
+  intros b h
+  dsimp
+  rw [if_neg]
+  exact h
+
+@[simp]
 theorem step_char_none_right [DecidableEq α] (a : α) (s : Option Unit) :
   (char a).step s none = ∅ := by
   match s with
@@ -398,6 +406,45 @@ theorem εClosure_char [DecidableEq α] (S : Set (Option Unit)) (a : α) :
   exact h1 h
 
 @[simp]
+theorem stepSet_char_none [DecidableEq α] (a : α) : (char a).stepSet { none } a = { some () } := by
+  unfold stepSet
+  simp
+
+theorem stepSet_char_none_ne [DecidableEq α] (a : α) :
+  ∀ b ≠ a, (char a).stepSet { none } b = ∅ := by
+  unfold stepSet
+  simp
+
+@[simp]
+theorem stepSet_char_some [DecidableEq α] (a b : α) : (char a).stepSet { some () } b = ∅ := by
+  unfold stepSet
+  simp
+
+@[simp]
+theorem foldl_stepSet_char_empty [DecidableEq α] (x : List α) (a : α) :
+  List.foldl (char a).stepSet ∅ x = ∅ := by
+  induction x with
+  | nil =>
+    rw [List.foldl_nil]
+  | cons x xs ih =>
+    rw [List.foldl_cons]
+    simp
+    exact ih
+
+@[simp]
+theorem evalFrom_char_cons_cons [DecidableEq α] (x : List α) (a b c : α) :
+  (char a).evalFrom { none } (b :: c :: x) = ∅ := by
+  by_cases h : b = a
+  rw [h]
+  unfold evalFrom
+  simp
+  unfold evalFrom
+  simp
+  rw [stepSet_char_none_ne, stepSet_empty]
+  simp
+  exact h
+
+@[simp]
 theorem accepts_char [DecidableEq α] : (char a).accepts = {[a]} := by
   ext x
   rw [mem_singleton_iff]
@@ -409,10 +456,10 @@ theorem accepts_char [DecidableEq α] : (char a).accepts = {[a]} := by
   cases' xs with y ys
   simp at *
   exact h
+  simp at *
+  intro h
+  rw [h]
   simp
-  -- need to prove that evalFrom (char a) {none} (x :: y :: ys) = ∅
-  sorry
-  sorry
 
 theorem accepts_add : (P.add Q).accepts = P.accepts + Q.accepts := by
   rw [add, NFA.toεNFA_correct, DFA.toNFA_correct]
