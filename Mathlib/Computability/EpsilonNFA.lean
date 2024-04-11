@@ -267,7 +267,21 @@ def mul [DecidablePred (· ∈ P.accept)] : εNFA α (σ ⊕ σ') :=
   accept := Sum.inr '' Q.accept
 }
 
-def star (P : εNFA α σ) : εNFA α (Option σ) := sorry
+def star [DecidablePred (· ∈ P.accept)] : εNFA α (Option σ) :=
+{
+  step := fun s a =>
+    match s with
+    | none => match a with
+      | none => some '' P.start
+      | some _ => ∅
+    | some s => match a with
+      | none => if s ∈ P.accept
+        then insert none (some '' P.step s none)
+        else some '' P.step s none
+      | some a => some '' P.step s a
+  start := { none }
+  accept := { none }
+}
 
 @[simp]
 theorem step_zero (s a) : (0 : εNFA α σ).step s a = ∅ :=
@@ -393,8 +407,8 @@ theorem accepts_one (σ : Type v) [Nonempty σ] : (1 : εNFA α σ).accepts = 1 
   . simp
 
 @[simp]
-theorem εClosure_char [DecidableEq α] (S : Set (Option Unit)) (a : α) :
-  (char a).εClosure S = S := by
+theorem εClosure_char [DecidableEq α] (s : Set (Option Unit)) (a : α) :
+  (char a).εClosure s = s := by
   ext x
   constructor
   . intro h
@@ -402,7 +416,7 @@ theorem εClosure_char [DecidableEq α] (S : Set (Option Unit)) (a : α) :
     . exact h1
     . simp at *
   . intro h
-    have h1 : S ⊆ εClosure (char a) S := subset_εClosure _ _
+    have h1 : s ⊆ εClosure (char a) s := subset_εClosure _ _
     exact h1 h
 
 @[simp]
@@ -456,6 +470,7 @@ theorem accepts_char [DecidableEq α] : (char a).accepts = {[a]} := by
     . simp
     . simp
 
+@[simp]
 theorem accepts_add : (P.add Q).accepts = P.accepts + Q.accepts := by
   rw [add, NFA.toεNFA_correct, DFA.toNFA_correct]
   repeat rw [←toNFA_correct, ←NFA.toDFA_correct]
@@ -469,7 +484,9 @@ theorem accepts_mul [DecidablePred (· ∈ P.accept)] : (P.mul Q).accepts = P.ac
   sorry
 
 @[simp]
-theorem accepts_star : P.star.accepts = P.accepts∗ := sorry
-
+theorem accepts_star [DecidablePred (· ∈ P.accept)] : P.star.accepts = P.accepts∗ := by
+  ext x
+  rw [Language.mem_kstar]
+  sorry
 
 end εNFA
