@@ -247,22 +247,19 @@ def char [DecidableEq α] (a : α) : εNFA α (Option Unit) :=
 
 def add : εNFA α (Set σ × Set σ') := (P.toNFA.toDFA.add Q.toNFA.toDFA).toNFA.toεNFA
 
-def mul [DecidablePred (· ∈ P.accept)] : εNFA α (σ ⊕ σ') :=
+def mul : εNFA α (σ ⊕ σ') :=
 {
-  step := fun s a =>
-    match s with
-    | Sum.inl s => match a with
-      | none => if s ∈ P.accept
-          then (Sum.inl '' P.step s a) ∪ (Sum.inr '' Q.start)
-          else Sum.inl '' P.step s a
-      | some a => Sum.inl '' P.step s a
-    | Sum.inr s => Sum.inr '' Q.step s a
-  -- step := fun p c q =>
-  --   match (p, q) with
-  --   | (Sum.inl p, Sum.inl q) => P.step p c q
-  --   | (Sum.inl p, Sum.inr q) => Q.start q ∧ (∃ r, P.accept r ∧ P.step p c r)
-  --   | (Sum.inr _, Sum.inl _) => False
-  --   | (Sum.inr p, Sum.inr q) => Q.step p c q
+  step := fun p c q =>
+    match c with
+    | none => match (p, q) with
+      | (Sum.inl p, Sum.inl q) => P.step p none q
+      | (Sum.inl p, Sum.inr q) => P.accept p ∧ Q.start q
+      | (Sum.inr _, Sum.inl _) => False
+      | (Sum.inr p, Sum.inr q) => Q.step p none q
+    | some c => match (p, q) with
+      | (Sum.inl p, Sum.inl q) => P.step p c q
+      | (Sum.inr p, Sum.inr q) => Q.step p c q
+      | (_, _) => False
   start := Sum.inl '' P.start
   accept := Sum.inr '' Q.accept
 }
@@ -322,27 +319,68 @@ theorem step_char_none_right [DecidableEq α] (a : α) (s : Option Unit) :
   | some s => rfl
 
 @[simp]
-theorem step_mul_left_not_accept [DecidablePred (· ∈ P.accept)] (a : α) :
+theorem step_mul_left_not_accept (a : α) :
   ∀s ∉ P.accept, (P.mul Q).step (Sum.inl s) a = (Sum.inl '' P.step s a) := by
   intros _ _
-  rfl
+  ext x
+  unfold mul
+  cases' x with p q
+  . simp at *
+    rfl
+  . simp at *
+    intro h
+    exact h
 
 @[simp]
-theorem step_mul_left_some [DecidablePred (· ∈ P.accept)] :
-  (P.mul Q).step (Sum.inl s) (some a) = (Sum.inl '' P.step s (some a)) := rfl
+theorem step_mul_left_some :
+  (P.mul Q).step (Sum.inl s) (some a) = (Sum.inl '' P.step s (some a)) := by
+  ext x
+  unfold mul
+  cases' x with p q
+  . simp at *
+    rfl
+  . simp at *
+    intro h
+    exact h
 
 @[simp]
-theorem step_mul_left_none_accept [DecidablePred (· ∈ P.accept)] :
+theorem step_mul_left_none_accept :
   ∀s ∈ P.accept, (P.mul Q).step (Sum.inl s) none = (Sum.inl '' P.step s none) ∪ (Sum.inr '' Q.start) := by
   intros _ h
   unfold mul
-  dsimp
-  rw [if_pos]
-  exact h
+  ext x
+  constructor
+  . cases' x with p q
+    . simp at *
+      intro h1
+      exact h1
+    . simp at *
+      intro h1
+      exact h1.2
+  . cases' x with p q
+    . simp at *
+      intro h1
+      exact h1
+    . simp at *
+      intro h1
+      exact ⟨h, h1⟩
 
 @[simp]
-theorem step_mul_right [DecidablePred (· ∈ P.accept)] (s : σ') (a : α) :
-  (P.mul Q).step (Sum.inr s) a = (Sum.inr '' Q.step s a) := rfl
+theorem step_mul_right (s : σ') (a : Option α) :
+  (P.mul Q).step (Sum.inr s) a = (Sum.inr '' Q.step s a) := by
+  ext x
+  cases' x with p q
+  . unfold mul
+    simp at *
+    intro h
+    cases a
+    . exact h
+    . exact h
+  . unfold mul
+    simp at *
+    cases a
+    . rfl
+    . rfl
 
 @[simp]
 theorem stepSet_one (s : Set σ) (a : α) : (1 : εNFA α σ).stepSet s a = ∅ := by
@@ -398,7 +436,7 @@ theorem accepts_zero : (0 : εNFA α σ).accepts = 0 := by
   rw [Language.zero_def]
 
 @[simp]
-theorem accepts_one (σ : Type v) [Nonempty σ] : (1 : εNFA α σ).accepts = 1 := by
+theorem accepts_one [Nonempty σ] : (1 : εNFA α σ).accepts = 1 := by
   ext x
   rw [Language.mem_one]
   simp
@@ -477,7 +515,7 @@ theorem accepts_add : (P.add Q).accepts = P.accepts + Q.accepts := by
   rw [←DFA.accepts_add P.toNFA.toDFA Q.toNFA.toDFA]
 
 @[simp]
-theorem accepts_mul [DecidablePred (· ∈ P.accept)] : (P.mul Q).accepts = P.accepts * Q.accepts := by
+theorem accepts_mul : (P.mul Q).accepts = P.accepts * Q.accepts := by
   ext x
   simp
   rw [Language.mem_mul]
