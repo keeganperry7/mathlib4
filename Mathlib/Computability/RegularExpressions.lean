@@ -450,8 +450,7 @@ def toεNFA : RegularExpression α → Σ σ , εNFA α σ
   | char a => ⟨_, εNFA.char a⟩
   | P + Q => ⟨_, P.toεNFA.2.add Q.toεNFA.2⟩
   | comp P Q => ⟨_, P.toεNFA.2.mul Q.toεNFA.2⟩
-  -- | star P => let ⟨σ, P'⟩ := P.toεNFA ; ⟨Option σ, P'.star⟩
-  | star P => sorry
+  | star P => let ⟨σ, P'⟩ := P.toεNFA ; ⟨Option σ, P'.star⟩
 
 theorem toεNFA_correct : ∀(R : RegularExpression α), R.toεNFA.2.accepts = R.matches'
   | 0 => εNFA.accepts_zero
@@ -467,7 +466,6 @@ theorem toεNFA_correct : ∀(R : RegularExpression α), R.toεNFA.2.accepts = R
     exact εNFA.accepts_mul _ _
   | star P => by
     rw [matches'_star, ←P.toεNFA_correct]
-    sorry
-    -- exact εNFA.accepts_star _
+    exact εNFA.accepts_star _
 
 end RegularExpression

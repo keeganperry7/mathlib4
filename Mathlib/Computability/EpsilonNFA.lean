@@ -264,20 +264,19 @@ def mul : εNFA α (σ ⊕ σ') :=
   accept := Sum.inr '' Q.accept
 }
 
-def star [DecidablePred (· ∈ P.accept)] : εNFA α (Option σ) :=
+def star : εNFA α (Option σ) :=
 {
-  step := fun s a =>
-    match s with
-    | none => match a with
-      | none => some '' P.start
-      | some _ => ∅
-    | some s => match a with
-      | none => if s ∈ P.accept
-        then insert none (some '' P.step s none)
-        else some '' P.step s none
-      | some a => some '' P.step s a
-  start := { none }
-  accept := { none }
+  step := fun p c q =>
+    match c with
+    | none => match (p, q) with
+      | (some p, some q) => P.step p c q ∨ (P.accept p ∧ P.start q)
+      | (none, some q) => P.start q
+      | (_, _) => false
+    | some c => match (p, q) with
+      | (some p, some q) => P.step p c q
+      | (_, _) => False
+  start := { none } ∪ (some '' P.start)
+  accept := { none } ∪ (some '' P.accept)
 }
 
 @[simp]
@@ -522,7 +521,7 @@ theorem accepts_mul : (P.mul Q).accepts = P.accepts * Q.accepts := by
   sorry
 
 @[simp]
-theorem accepts_star [DecidablePred (· ∈ P.accept)] : P.star.accepts = P.accepts∗ := by
+theorem accepts_star : P.star.accepts = P.accepts∗ := by
   ext x
   rw [Language.mem_kstar]
   sorry
