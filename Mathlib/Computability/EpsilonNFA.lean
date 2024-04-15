@@ -453,8 +453,7 @@ theorem εClosure_char [DecidableEq α] (s : Set (Option Unit)) (a : α) :
     . exact h1
     . simp at *
   . intro h
-    have h1 : s ⊆ εClosure (char a) s := subset_εClosure _ _
-    exact h1 h
+    tauto
 
 @[simp]
 theorem stepSet_char_none [DecidableEq α] (a : α) : (char a).stepSet { none } a = { some () } := by
