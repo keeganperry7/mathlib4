@@ -591,7 +591,7 @@ theorem εClosure_mul_left (s : σ) :
   sorry
 
 @[simp]
-theorem εClosure_mul_left_accept (p : Set σ) :
+theorem εClosure_mul_left_accept :
   (P.mul Q).εClosure (Sum.inl '' P.accept) = Sum.inl '' P.εClosure P.accept ∪ Sum.inr '' Q.εClosure Q.start := by
   ext x
   constructor
@@ -659,24 +659,36 @@ theorem εClosure_mul_left_accept (p : Set σ) :
     simp at *
     match h with
     | Or.inl ⟨p, hp⟩ =>
-      by_cases h : p ∈ P.accept
-      .
+      cases hp.left with
+      | base _ h' =>
         have hh : Sum.inl p ∈ Sum.inl '' P.accept :=
-          @mem_image_of_mem _ (σ ⊕ σ') Sum.inl _ _ h
+          @mem_image_of_mem _ (σ ⊕ σ') Sum.inl _ _ h'
         have hhh : Sum.inl p ∈ (P.mul Q).εClosure (Sum.inl '' P.accept) := εClosure.base _ hh
         rw [hp.right] at hhh
         exact hhh
-      .
-        cases hp.left with
-        | base _ h' =>
-          absurd h
-          exact h'
-        | step s _ hp' hs =>
-          apply step_mul_left_none _ Q _ at hp'
-          apply εClosure_mul_left _ Q _ at hs
-          rw [hp.right] at hp'
-          exact εClosure.step (Sum.inl s) x hp' hs
-    | Or.inr ⟨q, hq⟩ => sorry
+      | step s _ hp' hs =>
+        apply step_mul_left_none _ Q _ at hp'
+        apply εClosure_mul_left _ Q _ at hs
+        rw [hp.right] at hp'
+        exact εClosure.step (Sum.inl s) x hp' hs
+    | Or.inr ⟨q, hq⟩ =>
+      cases hq.left with
+      | base _ hq' =>
+        have hh : ∀ p ∈ P.accept, Sum.inr q ∈ (P.mul Q).step (Sum.inl p) none := by
+          simp
+          intro p h2
+          have h2' : Sum.inl p ∈ Sum.inl '' P.accept :=
+            @mem_image_of_mem _ (σ ⊕ σ') Sum.inl _ _ h2
+          exact ⟨h2, hq'⟩
+        rw [hq.right] at hh
+        sorry
+      | step => sorry
+
+theorem εClosure_step_test (S : Set σ) :
+  ∀ p ∈ S, ∀ s ∈ P.step p none, s ∈ P.εClosure S := by
+  intro p hp s hs
+  have hp' : p ∈ P.εClosure S := εClosure.base _ hp
+  exact εClosure.step p s hs hp'
 
 @[simp]
 theorem εClosure_mul_right (q : Set σ') :
