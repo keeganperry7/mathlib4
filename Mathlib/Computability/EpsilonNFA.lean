@@ -728,14 +728,20 @@ theorem εClosure_mul_right (q : Set σ') :
   . intro h
     match h with
     | ⟨y, ⟨hy, hx⟩⟩ =>
-      induction hy with
+      induction hy generalizing x with
       | base k hk =>
         have hk' : Sum.inr k ∈ Sum.inr '' q := by
           exact @mem_image_of_mem _ (σ ⊕ σ') Sum.inr _ _ hk
         rw [hx] at hk'
         exact εClosure.base x hk'
        | step s t ht hs ih =>
-        sorry
+        simp at ih
+        have ih : Sum.inr s ∈ (P.mul Q).εClosure (Sum.inr '' q) := ih s hs rfl
+        have hh : Sum.inr t ∈ (P.mul Q).step (Sum.inr s) none := by
+          simp
+          exact ht
+        rw [hx] at hh
+        exact εClosure.step (Sum.inr s) x hh ih
 
 @[simp]
 theorem stepSet_mul_right (a : α) (q : Set σ') :
