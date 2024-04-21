@@ -672,8 +672,8 @@ theorem εClosure_mul_left_accept [h'' : Nonempty P.accept] :
         rw [hp.right] at hp'
         exact εClosure.step (Sum.inl s) x hp' hs
     | Or.inr ⟨q, hq⟩ =>
-      cases hq.left with
-      | base _ hq' =>
+      induction hq.left generalizing x with
+      | base q hq' =>
         match h'' with
         |⟨p, hp⟩ =>
           have hp' : Sum.inl p ∈ Sum.inl '' P.accept :=
@@ -689,7 +689,17 @@ theorem εClosure_mul_left_accept [h'' : Nonempty P.accept] :
           rw [hq.right] at hh
 
           exact εClosure.step (Sum.inl p) x hh hhh
-      | step s _ hq' hs => sorry
+      | step s t ht hs ih =>
+        simp at ih
+        have ih : Sum.inr s ∈ (P.mul Q).εClosure (Sum.inl '' P.accept) := ih s hs hs rfl
+
+        have hh : Sum.inr t ∈ (P.mul Q).step (Sum.inr s) none := by
+          simp
+          exact ht
+
+        rw [hq.right] at hh
+
+        exact εClosure.step (Sum.inr s) x hh ih
 
 @[simp]
 theorem εClosure_mul_right (q : Set σ') :
