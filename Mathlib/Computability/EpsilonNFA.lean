@@ -643,6 +643,31 @@ theorem εClosure_mul_left (S : Set σ) (p : σ) :
           rw [←hp] at ht
           simp at *
 
+theorem εClosure_mul_left_accept'' (p : Set σ) (q : σ') :
+  Sum.inr q ∈ (P.mul Q).εClosure (Sum.inl '' p) → q ∈ Q.εClosure Q.start := by
+  intro h1
+  have h1' : ∃ x ∈ (P.mul Q).εClosure (Sum.inl '' p), Sum.inr q = x := by
+    exact ⟨Sum.inr q, ⟨h1, rfl⟩⟩
+
+  match h1' with
+  | ⟨x, ⟨hx, hq⟩⟩ =>
+    induction hx generalizing q with
+    | base s hs =>
+      rw [←hq] at hs
+      simp at *
+    | step s t ht hs ih =>
+      simp at ih
+      match s with
+      | Sum.inl s =>
+        rw [←hq] at ht
+        simp at ht
+        exact εClosure.base _ ht.right
+      | Sum.inr s =>
+        have ih := ih s hs hs rfl
+        rw [←hq] at ht
+        simp at ht
+        exact εClosure.step s q ht ih
+
 theorem εClosure_mul_left_accept' (p : Set σ) (q : σ') :
   (∃ x ∈ P.accept, x ∈ P.εClosure p) →
   (q ∈ Q.εClosure Q.start ↔ Sum.inr q ∈ (P.mul Q).εClosure (Sum.inl '' p)) := by
@@ -860,6 +885,7 @@ theorem stepSet_mul_left_left (a : α) (S : Set σ) (p : σ) :
       apply (εClosure_mul_left _ Q _ _).mp at hp
       exact ⟨t, ⟨ht, hp⟩⟩
 
+@[simp]
 theorem stepSet_mul_left_right (a : α) (S : Set σ) (q : σ') :
   Sum.inr q ∈ (P.mul Q).stepSet (Sum.inl '' S) a → q ∈ Q.εClosure Q.start := by
   intro h
@@ -932,30 +958,125 @@ theorem eval_mul_left_left (x : List α) (s : σ) :
         simp
         exact ⟨t, ⟨ht, hs⟩⟩
 
+theorem eval_mul_left_right (x : List α) (p : σ) (q : σ') :
+  p ∈ P.accept ∧ q ∈ Q.εClosure Q.start ∧ Sum.inl p ∈ (P.mul Q).eval x → Sum.inr q ∈ (P.mul Q).eval x := by
+  intro ⟨hp, hq, hx⟩
+  cases x using List.reverseRecOn with
+  | nil =>
+    simp at *
+    rw [←εClosure_mul_left] at hx
+    exact (εClosure_mul_left_accept' P Q P.start q ⟨p, ⟨hp, hx⟩⟩).mp hq
+  | append_singleton xs x _ =>
+    simp at hx
+    match hx with
+    | ⟨t, ⟨ht, hp'⟩⟩ =>
+      rw [←εClosure_mul_left] at hp'
+      have h := (εClosure_mul_left_accept' P Q (P.step t (some x)) q ⟨p, ⟨hp, hp'⟩⟩).mp hq
+      simp
+      left
+      use t
+
+theorem eval_mul_left_right' (a b : List α) (p : σ) (q : σ') :
+  p ∈ P.accept ∧ p ∈ P.eval a ∧ q ∈ Q.eval b → Sum.inr q ∈ (P.mul Q).eval (a ++ b) := by
+  intro ⟨hp, ha, hq⟩
+  induction b using List.reverseRecOn generalizing q with
+  | nil =>
+    simp at *
+    rw [eval_mul_left_left _ Q] at ha
+    exact eval_mul_left_right _ _ _ _ _ ⟨hp, hq, ha⟩
+  | append_singleton bs b ih =>
+    simp at *
+    match hq with
+    | ⟨t, ⟨ht, hq⟩⟩ =>
+      have ih := ih t ht
+      rw [←List.append_assoc]
+      rw [eval_append_singleton]
+      simp
+      right
+      exact ⟨t, ⟨ih, hq⟩⟩
+
 theorem accepts_mul' (a b : List α) :
   a ∈ P.accepts ∧ b ∈ Q.accepts → a ++ b ∈ (P.mul Q).accepts := by
   intro ⟨ha, hb⟩
-  induction b using List.reverseRecOn with
+  cases b using List.reverseRecOn with
   | nil =>
     simp at *
     rw [←eval] at ha
     match ha with
     | ⟨p, ⟨hp, ha⟩⟩ =>
       rw [eval_mul_left_left _ Q] at ha
-      unfold evalFrom
-      cases a with
-      | nil =>
-        simp at *
-        sorry
-      | _ => sorry
-  | append_singleton bs b ih => sorry
+      match hb with
+      | ⟨q, ⟨hq, hb⟩⟩ =>
+        exact ⟨q, ⟨hq, eval_mul_left_right _ _ _ _ _ ⟨hp, hb, ha⟩⟩⟩
+  | append_singleton bs b _ =>
+    by_cases h : Nonempty Q.start
+    . simp at h ha hb
+      simp
+      rw [←List.append_assoc]
+      rw [evalFrom_append_singleton]
+      simp
+      match hb with
+      | ⟨q, ⟨hq, ⟨t, ht⟩⟩⟩ =>
+        use q
+        constructor
+        . exact hq
+        . right
+          use t
+          constructor
+          . match ha with
+            | ⟨s, hs⟩ =>
+              rw [←eval] at hs ht
+              exact eval_mul_left_right' P Q a bs s t ⟨hs.left, hs.right, ht.left⟩
+          . exact ht.right
+    . simp at *
+      have h : Q.start = ∅ := eq_empty_of_forall_not_mem h
+      rw [h] at hb
+      simp at hb
 
 @[simp]
 theorem accepts_mul : (P.mul Q).accepts = P.accepts * Q.accepts := by
   ext x
-  simp
   rw [Language.mem_mul]
-  sorry
+  constructor
+  . sorry
+  . intro h
+    match h with
+    | ⟨a, ⟨ha, ⟨b, ⟨hb, hx⟩⟩⟩⟩ =>
+      rw [←hx]
+      cases b using List.reverseRecOn with
+      | nil =>
+        simp at *
+        rw [←eval] at ha
+        match ha with
+        | ⟨p, ⟨hp, ha⟩⟩ =>
+          rw [eval_mul_left_left _ Q] at ha
+          match hb with
+          | ⟨q, ⟨hq, hb⟩⟩ =>
+            exact ⟨q, ⟨hq, eval_mul_left_right _ _ _ _ _ ⟨hp, hb, ha⟩⟩⟩
+      | append_singleton bs b _ =>
+        by_cases h : Nonempty Q.start
+        . simp at h ha hb
+          simp
+          rw [←List.append_assoc]
+          rw [evalFrom_append_singleton]
+          simp
+          match hb with
+          | ⟨q, ⟨hq, ⟨t, ht⟩⟩⟩ =>
+            use q
+            constructor
+            . exact hq
+            . right
+              use t
+              constructor
+              . match ha with
+                | ⟨s, hs⟩ =>
+                  rw [←eval] at hs ht
+                  exact eval_mul_left_right' P Q a bs s t ⟨hs.left, hs.right, ht.left⟩
+              . exact ht.right
+        . simp at *
+          have h : Q.start = ∅ := eq_empty_of_forall_not_mem h
+          rw [h] at hb
+          simp at hb
 
 @[simp]
 theorem accepts_star : P.star.accepts = P.accepts∗ := by
