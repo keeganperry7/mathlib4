@@ -60,6 +60,9 @@ instance : Inhabited (Language α) := ⟨(∅ : Set _)⟩
 instance : Add (Language α) :=
   ⟨((· ∪ ·) : Set (List α) → Set (List α) → Set (List α))⟩
 
+instance : Inter (Language α) :=
+  ⟨((· ∩ ·) : Set (List α) → Set (List α) → Set (List α))⟩
+
 /-- The product of two languages `l` and `m` is the language made of the strings `x ++ y` where
 `x ∈ l` and `y ∈ m`. -/
 instance : Mul (Language α) :=
@@ -111,6 +114,9 @@ theorem nil_mem_one : [] ∈ (1 : Language α) :=
 theorem mem_add (l m : Language α) (x : List α) : x ∈ l + m ↔ x ∈ l ∨ x ∈ m :=
   Iff.rfl
 #align language.mem_add Language.mem_add
+
+theorem mem_inter (l m : Language α) (x : List α) : x ∈ l ∩ m ↔ x ∈ l ∧ x ∈ m :=
+  Iff.rfl
 
 theorem mem_mul : x ∈ l * m ↔ ∃ a ∈ l, ∃ b ∈ m, a ++ b = x :=
   mem_image2
