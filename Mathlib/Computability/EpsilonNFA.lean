@@ -1016,6 +1016,41 @@ theorem eval_mul_left_right_split (a b : List α) (p : σ) (q : σ') :
       right
       exact ⟨t, ⟨ih, hq⟩⟩
 
+theorem split' (n : Nat) (s : List α) (P1 P2 : List α → Prop) :
+ (∃ s1 s2, s1.length ≤ n ∧ s1 ++ s2 = s ∧ P1 s1 ∧ P2 s2) ∨
+ (∀ s1 s2, s1.length ≤ n → s1 ++ s2 = s → ¬P1 s1 ∨ ¬P2 s2) := by
+  induction n with
+  | zero =>
+    simp [List.length_eq_zero]
+    rw [←forall_or_left]
+    intro s1
+    rw [←forall_or_left]
+    intro s2
+    cases s1 with
+    | nil =>
+      by_cases h : s2 = s
+      . rw [h]
+        simp
+        tauto
+      . simp
+        tauto
+    | cons _ _ => simp
+  | succ n ih =>
+    simp at *
+    cases ih with
+    | inl ih => sorry
+    | inr ih => sorry
+
+theorem mul_split (x : List α) :
+  x ∈ (P.mul Q).accepts ↔ ∃ n ≤ x.length, x.take n ∈ P.accepts ∧ x.drop n ∈ Q.accepts := by
+  constructor
+  . intro h
+    induction x with
+    | nil =>
+      sorry
+    | cons x xs ih => sorry
+  . sorry
+
 theorem accepts_mul' : x ∈ (P.mul Q).accepts → ∃ a ∈ P.accepts, ∃ b ∈ Q.accepts, a ++ b = x := by
   intro h
   match x with
