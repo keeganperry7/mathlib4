@@ -213,14 +213,14 @@ theorem accept_inter(s t) : (s, t) ∈ (P.inter Q).accept ↔ s ∈ P.accept ∧
 theorem evalFrom_add (s t) (a : List α) :
   evalFrom (P.add Q) (s, t) a = (evalFrom P s a, evalFrom Q t a) := by
   induction a generalizing s t with
-  | nil => tauto
+  | nil => simp
   | cons _ _ ih => simp [ih]
 
 @[simp]
 theorem evalFrom_inter(s t) (a : List α) :
   evalFrom (P.inter Q) (s, t) a = (evalFrom P s a, evalFrom Q t a) := by
   induction a generalizing s t with
-  | nil => tauto
+  | nil => simp
   | cons _ _ ih => simp [ih]
 
 @[simp]
