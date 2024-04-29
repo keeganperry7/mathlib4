@@ -1016,55 +1016,74 @@ theorem eval_mul_left_right_split (a b : List α) (p : σ) (q : σ') :
       right
       exact ⟨t, ⟨ih, hq⟩⟩
 
+theorem split'' (n : Nat) (s : List α) (P1 P2 : List α → Prop) :
+  n ≤ s.length →
+ (∃ s1 s2, s1.length ≤ n ∧ s1 ++ s2 = s ∧ P1 s1 ∧ P2 s2) ∨
+ ¬(∃ s1 s2, s1.length ≤ n ∧ s1 ++ s2 = s ∧ P1 s1 ∧ P2 s2) := by
+  intro
+  tauto
+
 theorem split' (n : Nat) (s : List α) (P1 P2 : List α → Prop) :
+  n ≤ s.length →
  (∃ s1 s2, s1.length ≤ n ∧ s1 ++ s2 = s ∧ P1 s1 ∧ P2 s2) ∨
  (∀ s1 s2, s1.length ≤ n → s1 ++ s2 = s → ¬P1 s1 ∨ ¬P2 s2) := by
-  induction n with
-  | zero =>
-    simp [List.length_eq_zero]
-    rw [←forall_or_left]
-    intro s1
-    rw [←forall_or_left]
-    intro s2
-    cases s1 with
-    | nil =>
-      by_cases h : s2 = s
-      . rw [h]
-        simp
-        tauto
-      . simp
-        tauto
-    | cons _ _ => simp
-  | succ n ih =>
-    simp at *
-    cases ih with
-    | inl ih => sorry
-    | inr ih => sorry
+  intro h
+  have h := split'' n s P1 P2 h
+  simp at *
+  cases h with
+  | inl h =>
+    left
+    exact h
+  | inr h =>
+    intros
+    tauto
 
-theorem mul_split (x : List α) :
-  x ∈ (P.mul Q).accepts ↔ ∃ n ≤ x.length, x.take n ∈ P.accepts ∧ x.drop n ∈ Q.accepts := by
-  constructor
-  . intro h
-    induction x with
-    | nil =>
-      sorry
-    | cons x xs ih => sorry
-  . sorry
+theorem split (s : List α) (P1 P2 : List α → Prop) : (∃ s1 s2, s = s1 ++ s2 ∧ P1 s1 ∧ P2 s2) ∨
+  (∀ s1 s2, s = s1 ++ s2 → ¬P1 s1 ∨ ¬P2 s2) := by
+  have h := ((split' (s.length) s P1 P2) (le_refl s.length))
+  aesop
 
 theorem accepts_mul' : x ∈ (P.mul Q).accepts → ∃ a ∈ P.accepts, ∃ b ∈ Q.accepts, a ++ b = x := by
   intro h
-  match x with
-  | [] =>
-    simp at *
-    match h with
-    | ⟨q, ⟨hq, h⟩⟩ =>
-      have hq' := εClosure_mul_left_accept'' _ _ _ _ h
-      have hp := εClosure_mul_left_accept' _ _ _ _ h
-      match hp with
-      | ⟨p, ⟨hp, hp'⟩⟩ =>
-        rw [←εClosure_mul_left] at hp'
-        exact ⟨⟨p, ⟨hp, hp'⟩⟩, ⟨q, ⟨hq, hq'⟩⟩⟩
-  | x => sorry
+  have h_split := split x (accepts P) (accepts Q)
+  match h_split with
+  | Or.inl h_split =>
+    match h_split with
+    | ⟨a, ⟨b, ⟨hx, ⟨ha, hb⟩⟩⟩⟩ =>
+      rw [hx]
+      use a
+      constructor
+      . exact ha
+      . use b
+        exact ⟨hb, rfl⟩
+  | Or.inr h_split =>
+    sorry
+
+  -- match x with
+  -- | [] =>
+  --   simp at *
+  --   match h with
+  --   | ⟨q, ⟨hq, h⟩⟩ =>
+  --     have hq' := εClosure_mul_left_accept'' _ _ _ _ h
+  --     have hp := εClosure_mul_left_accept' _ _ _ _ h
+  --     match hp with
+  --     | ⟨p, ⟨hp, hp'⟩⟩ =>
+  --       rw [←εClosure_mul_left] at hp'
+  --       exact ⟨⟨p, ⟨hp, hp'⟩⟩, ⟨q, ⟨hq, hq'⟩⟩⟩
+  -- | x =>
+  --   have h_split := split x (accepts P) (accepts Q)
+  --   match h_split with
+  --   | Or.inl h_split =>
+  --     match h_split with
+  --     | ⟨a, ⟨b, ⟨hx, ⟨ha, hb⟩⟩⟩⟩ =>
+  --       rw [hx]
+  --       use a
+  --       constructor
+  --       . exact ha
+  --       . use b
+  --         exact ⟨hb, rfl⟩
+  --   | Or.inr h_split =>
+  --     sorry
 
 @[simp]
 theorem accepts_mul : (P.mul Q).accepts = P.accepts * Q.accepts := by
