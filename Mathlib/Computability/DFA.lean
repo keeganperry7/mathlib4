@@ -206,7 +206,7 @@ theorem accept_add (s t) : (s, t) ∈ (P.add Q).accept ↔ s ∈ P.accept ∨ t 
   Iff.refl _
 
 @[simp]
-theorem accept_inter(s t) : (s, t) ∈ (P.inter Q).accept ↔ s ∈ P.accept ∧ t ∈ Q.accept :=
+theorem accept_inter (s t) : (s, t) ∈ (P.inter Q).accept ↔ s ∈ P.accept ∧ t ∈ Q.accept :=
   Iff.refl _
 
 @[simp]

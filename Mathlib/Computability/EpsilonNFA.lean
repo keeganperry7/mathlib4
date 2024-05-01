@@ -449,7 +449,7 @@ theorem start_one : (1 : εNFA α σ).start = univ :=
 theorem start_char [DecidableEq α] (a : α) : (char a).start = { none } := rfl
 
 @[simp]
-theorem start_mul [DecidablePred (· ∈ P.accept)] : (P.mul Q).start = (Sum.inl '' P.start) := rfl
+theorem start_mul : (P.mul Q).start = (Sum.inl '' P.start) := rfl
 
 @[simp]
 theorem accept_zero : (0 : εNFA α σ).accept = ∅ :=
@@ -561,52 +561,52 @@ theorem accepts_add : (P.add Q).accepts = P.accepts + Q.accepts := by
   repeat rw [←toNFA_correct, ←NFA.toDFA_correct]
   rw [←DFA.accepts_add P.toNFA.toDFA Q.toNFA.toDFA]
 
--- @[simp]
--- theorem εClosure_mul_left_not_accept (p : Set σ) :
---   (∀ x ∈ P.accept, x ∉ P.εClosure p) →
---   (P.mul Q).εClosure (Sum.inl '' p) = Sum.inl '' P.εClosure p := by
---   intro h
---   ext x
---   constructor
---   . intro h1
---     induction h1 with
---     | base y hy =>
---       simp at *
---       tauto
---     | step s t ht hs ih =>
---       simp at ih
---       match ih with
---       | ⟨y, hy, hs'⟩ =>
---         rw [←hs'] at ht hs
---         have hy' : y ∉ P.accept := by
---           contrapose h
---           simp at *
---           exact ⟨y, ⟨h, hy⟩⟩
---         cases t with
---         | inl t =>
---           rw [step_mul_left_not_accept_none _ _ y hy'] at ht
---           simp at ht
---           simp at *
---           exact εClosure.step y t ht hy
---         | inr t =>
---           simp at ht
---           absurd hy'
---           exact ht.left
---   . intro h1
---     match h1 with
---     | ⟨y, hy, hx⟩ =>
---       induction hy generalizing x with
---       | base k hk =>
---         have hk' : Sum.inl k ∈ Sum.inl '' p := by
---           exact @mem_image_of_mem _ (σ ⊕ σ') Sum.inl _ _ hk
---         rw [hx] at hk'
---         exact εClosure.base x hk'
---       | step s t ht hs ih =>
---       simp at ih
---       have ih : Sum.inl s ∈ (P.mul Q).εClosure (Sum.inl '' p) := ih s hs rfl
---       rw [step_mul_left_none _ Q] at ht
---       rw [hx] at ht
---       exact εClosure.step (Sum.inl s) x ht ih
+@[simp]
+theorem εClosure_mul_left_not_accept (p : Set σ) :
+  (∀ x ∈ P.accept, x ∉ P.εClosure p) →
+  (P.mul Q).εClosure (Sum.inl '' p) = Sum.inl '' P.εClosure p := by
+  intro h
+  ext x
+  constructor
+  . intro h1
+    induction h1 with
+    | base y hy =>
+      simp at *
+      tauto
+    | step s t ht hs ih =>
+      simp at ih
+      match ih with
+      | ⟨y, hy, hs'⟩ =>
+        rw [←hs'] at ht hs
+        have hy' : y ∉ P.accept := by
+          contrapose h
+          simp at *
+          exact ⟨y, ⟨h, hy⟩⟩
+        cases t with
+        | inl t =>
+          rw [step_mul_left_not_accept_none _ _ y hy'] at ht
+          simp at ht
+          simp at *
+          exact εClosure.step y t ht hy
+        | inr t =>
+          simp at ht
+          absurd hy'
+          exact ht.left
+  . intro h1
+    match h1 with
+    | ⟨y, hy, hx⟩ =>
+      induction hy generalizing x with
+      | base k hk =>
+        have hk' : Sum.inl k ∈ Sum.inl '' p := by
+          exact @mem_image_of_mem _ (σ ⊕ σ') Sum.inl _ _ hk
+        rw [hx] at hk'
+        exact εClosure.base x hk'
+      | step s t ht hs ih =>
+      simp at ih
+      have ih : Sum.inl s ∈ (P.mul Q).εClosure (Sum.inl '' p) := ih s hs rfl
+      rw [step_mul_left_none _ Q] at ht
+      rw [hx] at ht
+      exact εClosure.step (Sum.inl s) x ht ih
 
 @[simp]
 theorem εClosure_mul_left (S : Set σ) (p : σ) :
@@ -891,59 +891,123 @@ theorem stepSet_mul_right (a : α) (q : Set σ') :
   simp
   tauto
 
--- theorem stepSet_mul_left_left (a : α) (S : Set σ) (p : σ) :
---   Sum.inl p ∈ (P.mul Q).stepSet (Sum.inl '' S) a ↔ p ∈ P.stepSet S a := by
---   constructor
---   . intro h
---     simp at *
---     match h with
---     | ⟨t, ⟨ht, hp⟩⟩ =>
---       apply (εClosure_mul_left _ Q _ _).mpr at hp
---       exact ⟨t, ⟨ht, hp⟩⟩
---   . intro h
---     simp at *
---     match h with
---     | ⟨t, ⟨ht, hp⟩⟩ =>
---       apply (εClosure_mul_left _ Q _ _).mp at hp
---       exact ⟨t, ⟨ht, hp⟩⟩
+theorem stepSet_mul_left_left (a : α) (S : Set σ) (p : σ) :
+  Sum.inl p ∈ (P.mul Q).stepSet (Sum.inl '' S) a ↔ p ∈ P.stepSet S a := by
+  constructor
+  . intro h
+    simp at *
+    match h with
+    | ⟨t, ⟨ht, hp⟩⟩ =>
+      apply (εClosure_mul_left _ Q _ _).mpr at hp
+      exact ⟨t, ⟨ht, hp⟩⟩
+  . intro h
+    simp at *
+    match h with
+    | ⟨t, ⟨ht, hp⟩⟩ =>
+      apply (εClosure_mul_left _ Q _ _).mp at hp
+      exact ⟨t, ⟨ht, hp⟩⟩
 
--- theorem stepSet_mul_left_right (a : α) (S : Set σ) (q : σ') :
---   Sum.inr q ∈ (P.mul Q).stepSet (Sum.inl '' S) a → q ∈ Q.εClosure Q.start := by
---   intro h
---   simp at *
---   match h with
---   | ⟨k, ⟨hk, hq⟩⟩ =>
---     have hq : ∃ x ∈ (P.mul Q).εClosure (Sum.inl '' P.step k (some a)), Sum.inr q = x := by
---       exact ⟨Sum.inr q, ⟨hq, rfl⟩⟩
---     match hq with
---     | ⟨x, ⟨hq, hx⟩⟩ =>
---       induction hq generalizing q with
---       | base s hs =>
---         rw [←hx] at hs
---         simp at *
---       | step s t ht hs ih =>
---         simp at *
---         match s with
---         | Sum.inl s =>
---           rw [←hx] at ht
---           simp at ht
---           exact εClosure.base _ ht.right
---         | Sum.inr s =>
---           have ih := ih s k hk hs hs hs rfl
---           rw [←hx] at ht
---           simp at ht
---           exact εClosure.step _ _ ht ih
+theorem stepSet_mul_left_not_accept (a : α) (S : Set σ) :
+  (∀ s ∈ S, (∀ p ∈ P.accept, p ∉ P.εClosure (P.step s a))) →
+  (P.mul Q).stepSet (Sum.inl '' S) a = Sum.inl '' P.stepSet S a := by
+  intro h
+  ext x
+  cases x with
+  | inl x =>
+    have h := stepSet_mul_left_left P Q a S x
+    simp at *
+    exact h
+  | inr x =>
+    simp
+    intro k hk h'
+    have h := εClosure_mul_left_not_accept P Q (P.step k a) (h k hk)
+    rw [h] at h'
+    simp at h'
+
+theorem stepSet_mul_left_right (a : α) (S : Set σ) (q : σ') :
+  Sum.inr q ∈ (P.mul Q).stepSet (Sum.inl '' S) a → q ∈ Q.εClosure Q.start := by
+  intro h
+  simp at *
+  match h with
+  | ⟨k, ⟨hk, hq⟩⟩ =>
+    have hq : ∃ x ∈ (P.mul Q).εClosure (Sum.inl '' P.step k (some a)), Sum.inr q = x := by
+      exact ⟨Sum.inr q, ⟨hq, rfl⟩⟩
+    match hq with
+    | ⟨x, ⟨hq, hx⟩⟩ =>
+      induction hq generalizing q with
+      | base s hs =>
+        rw [←hx] at hs
+        simp at *
+      | step s t ht hs ih =>
+        simp at *
+        match s with
+        | Sum.inl s =>
+          rw [←hx] at ht
+          simp at ht
+          exact εClosure.base _ ht.right
+        | Sum.inr s =>
+          have ih := ih s k hk hs hs hs rfl
+          rw [←hx] at ht
+          simp at ht
+          exact εClosure.step _ _ ht ih
 
 @[simp]
 theorem eval_mul_right (x : List α) :
   (P.mul Q).evalFrom (Sum.inr '' Q.start) x = Sum.inr '' Q.eval x := by
   induction x using List.reverseRecOn with
   | nil =>
-    simp at *
+    simp
   | append_singleton xs x ih =>
     simp
     rw [ih]
     simp
+
+theorem εClosure_εClosure (S : Set σ) :
+  P.εClosure S = P.εClosure (P.εClosure S) := by
+  ext x
+  constructor
+  . intro h
+    induction h with
+    | base s hs =>
+      exact (subset_trans (subset_εClosure P S) (subset_εClosure P (εClosure P S))) hs
+    | step s t ht _ ih =>
+      exact εClosure.step s t ht ih
+  . intro h
+    induction h with
+    | base _ hs => exact hs
+    | step s t ht _ ih => exact εClosure.step s t ht ih
+
+theorem stepSet_εClosure (S : Set σ) (a : α) :
+  P.stepSet S a = P.εClosure (P.stepSet S a) := by
+  ext x
+  constructor
+  . intro h
+    simp at h
+    rw [←mem_stepSet_iff] at h
+    exact εClosure.base x h
+  . intro h
+    induction h with
+    | base _ hs => exact hs
+    | step s t ht hs ih =>
+      simp at *
+      match ih with
+      | ⟨k, ⟨hk, hs⟩⟩ => exact ⟨k, ⟨hk, εClosure.step s t ht hs⟩⟩
+
+theorem eval_mul (a b : List α) :
+  (P.mul Q).eval (a ++ b) = (P.mul Q).evalFrom ((P.mul Q).eval a) b := by
+  induction b using List.reverseRecOn with
+  | nil =>
+    simp
+    induction a using List.reverseRecOn with
+    | nil =>
+      simp [←εClosure_εClosure]
+    | append_singleton as a ih =>
+      simp
+      rw [ih, ←stepSet_εClosure]
+  | append_singleton bs b ih =>
+    rw [←List.append_assoc]
+    rw [eval_append_singleton]
+    simp [ih]
 
 @[simp]
 theorem eval_mul_left_left (x : List α) (s : σ) :
@@ -1016,6 +1080,118 @@ theorem eval_mul_left_right_split (a b : List α) (p : σ) (q : σ') :
       right
       exact ⟨t, ⟨ih, hq⟩⟩
 
+theorem eval_mul_left_right' (x : List α) (q : σ') :
+  Sum.inr q ∈ (P.mul Q).eval x →
+  ∃ a b, x = a ++ b ∧ a ∈ P.accepts := by
+  intro h
+  induction x using List.reverseRecOn generalizing q with
+  | nil =>
+    simp at *
+    have h := εClosure_mul_left_accept' _ _ _ q h
+    match h with
+    | ⟨p, hp⟩ =>
+      rw [←εClosure_mul_left] at hp
+      use p
+  | append_singleton xs x ih =>
+    simp at h
+    cases h with
+    | inl h =>
+      match h with
+      | ⟨p, hp, hq'⟩ =>
+        have h := εClosure_mul_left_accept' _ _ _ _ hq'
+        rw [←eval_mul_left_left] at hp
+        match h with
+        | ⟨p', hp', hx⟩ =>
+          rw [←εClosure_mul_left] at hx
+          use (xs ++ [x]), []
+          simp
+          exact ⟨p', hp', p, hp, hx⟩
+    | inr h =>
+      match h with
+      | ⟨q', hq, _⟩ =>
+        have ih := ih q' hq
+        match ih with
+        | ⟨a, b, hxs, ha⟩ =>
+          use a, b ++ [x]
+          rw [←List.append_assoc, hxs]
+          exact ⟨rfl, ha⟩
+
+
+theorem eval_mul_left_right'' (x : List α) (q : σ') :
+  Sum.inr q ∈ (P.mul Q).eval x →
+  ∃ a b, x = a ++ b ∧ q ∈ Q.eval b := by
+  intro h
+  induction x using List.reverseRecOn generalizing q with
+  | nil =>
+    use [], []
+    refine' ⟨rfl, _⟩
+    simp at *
+    apply εClosure_mul_left_accept'' at h
+    exact h
+  | append_singleton xs x ih =>
+    simp at h
+    cases h with
+    | inl h =>
+      match h with
+      | ⟨p, _, hq'⟩ =>
+        apply εClosure_mul_left_accept'' at hq'
+        use (xs ++ [x]), []
+        simp
+        exact hq'
+    | inr h =>
+      match h with
+      | ⟨q', hq, hq'⟩ =>
+        have ih := ih q' hq
+        match ih with
+        | ⟨a, b, hxs, hb⟩ =>
+          use a, b ++ [x]
+          rw [←List.append_assoc, hxs]
+          refine' ⟨rfl, _⟩
+          simp
+          exact ⟨q', hb, hq'⟩
+
+theorem eval_mul_left_righ (x : List α) (q : σ') :
+  Sum.inr q ∈ (P.mul Q).eval x →
+  ∃ a b, x = a ++ b ∧ a ∈ P.accepts ∧ q ∈ Q.eval b := by
+  intro h
+  induction x using List.reverseRecOn generalizing q with
+  | nil =>
+    use [], []
+    simp at *
+    have hq := εClosure_mul_left_accept'' _ _ _ _ h
+    have hp := εClosure_mul_left_accept' _ _ _ _ h
+    refine' ⟨_, hq⟩
+    match hp with
+    | ⟨p, hp⟩ =>
+      rw [←εClosure_mul_left] at hp
+      use p
+  | append_singleton xs x ih =>
+    simp at h
+    cases h with
+    | inl h =>
+      match h with
+      | ⟨p, hp, hq'⟩ =>
+        have h := εClosure_mul_left_accept' _ _ _ _ hq'
+        have hq'' := εClosure_mul_left_accept'' _ _ _ _ hq'
+        rw [←eval_mul_left_left] at hp
+        match h with
+        | ⟨p', hp', hx⟩ =>
+          rw [←εClosure_mul_left] at hx
+          use (xs ++ [x]), []
+          simp
+          refine' ⟨⟨p', hp', p, hp, hx⟩, hq''⟩
+    | inr h =>
+      match h with
+      | ⟨q', hq, hq'⟩ =>
+        have ih := ih q' hq
+        match ih with
+        | ⟨a, b, hxs, ha⟩ =>
+          use a, b ++ [x]
+          rw [←List.append_assoc, hxs]
+          refine' ⟨rfl, ha.left, _⟩
+          simp
+          refine' ⟨q', ha.right, hq'⟩
+
 theorem split'' (n : Nat) (s : List α) (P1 P2 : List α → Prop) :
   n ≤ s.length →
  (∃ s1 s2, s1.length ≤ n ∧ s1 ++ s2 = s ∧ P1 s1 ∧ P2 s2) ∨
@@ -1045,52 +1221,55 @@ theorem split (s : List α) (P1 P2 : List α → Prop) : (∃ s1 s2, s = s1 ++ s
 
 theorem accepts_mul' : x ∈ (P.mul Q).accepts → ∃ a ∈ P.accepts, ∃ b ∈ Q.accepts, a ++ b = x := by
   intro h
-  have h_split := split x (accepts P) (accepts Q)
-  match h_split with
-  | Or.inl h_split =>
-    match h_split with
-    | ⟨a, ⟨b, ⟨hx, ⟨ha, hb⟩⟩⟩⟩ =>
-      rw [hx]
-      use a
-      constructor
-      . exact ha
-      . use b
-        exact ⟨hb, rfl⟩
-  | Or.inr h_split =>
-    sorry
-
-  -- match x with
-  -- | [] =>
-  --   simp at *
-  --   match h with
-  --   | ⟨q, ⟨hq, h⟩⟩ =>
-  --     have hq' := εClosure_mul_left_accept'' _ _ _ _ h
-  --     have hp := εClosure_mul_left_accept' _ _ _ _ h
-  --     match hp with
-  --     | ⟨p, ⟨hp, hp'⟩⟩ =>
-  --       rw [←εClosure_mul_left] at hp'
-  --       exact ⟨⟨p, ⟨hp, hp'⟩⟩, ⟨q, ⟨hq, hq'⟩⟩⟩
-  -- | x =>
-  --   have h_split := split x (accepts P) (accepts Q)
-  --   match h_split with
-  --   | Or.inl h_split =>
-  --     match h_split with
-  --     | ⟨a, ⟨b, ⟨hx, ⟨ha, hb⟩⟩⟩⟩ =>
-  --       rw [hx]
-  --       use a
-  --       constructor
-  --       . exact ha
-  --       . use b
-  --         exact ⟨hb, rfl⟩
-  --   | Or.inr h_split =>
-  --     sorry
+  match x with
+  | [] =>
+    simp at *
+    match h with
+    | ⟨q, ⟨hq, h⟩⟩ =>
+      have hq' := εClosure_mul_left_accept'' _ _ _ _ h
+      have hp := εClosure_mul_left_accept' _ _ _ _ h
+      match hp with
+      | ⟨p, ⟨hp, hp'⟩⟩ =>
+        rw [←εClosure_mul_left] at hp'
+        exact ⟨⟨p, ⟨hp, hp'⟩⟩, ⟨q, ⟨hq, hq'⟩⟩⟩
+  | x =>
+    simp at h
+    match h with
+    | ⟨q, hq, h⟩ =>
+      have h' := eval_mul_left_righ _ _ _ _ h
+      match h' with
+      | ⟨a, b, hx, ha, hb⟩ =>
+        rw [hx]
+        simp
+        exact ⟨a, ha, b, ⟨q, hq, hb⟩, rfl⟩
 
 @[simp]
 theorem accepts_mul : (P.mul Q).accepts = P.accepts * Q.accepts := by
   ext x
   rw [Language.mem_mul]
   constructor
-  . sorry
+  . intro h
+    match x with
+    | [] =>
+      simp at *
+      match h with
+      | ⟨q, ⟨hq, h⟩⟩ =>
+        have hq' := εClosure_mul_left_accept'' _ _ _ _ h
+        have hp := εClosure_mul_left_accept' _ _ _ _ h
+        match hp with
+        | ⟨p, ⟨hp, hp'⟩⟩ =>
+          rw [←εClosure_mul_left] at hp'
+          exact ⟨⟨p, ⟨hp, hp'⟩⟩, ⟨q, ⟨hq, hq'⟩⟩⟩
+    | x =>
+      simp at h
+      match h with
+      | ⟨q, hq, h⟩ =>
+        have h' := eval_mul_left_righ _ _ _ _ h
+        match h' with
+        | ⟨a, b, hx, ha, hb⟩ =>
+          rw [hx]
+          simp
+          exact ⟨a, ha, b, ⟨q, hq, hb⟩, rfl⟩
   . intro h
     match h with
     | ⟨a, ⟨ha, ⟨b, ⟨hb, hx⟩⟩⟩⟩ =>
