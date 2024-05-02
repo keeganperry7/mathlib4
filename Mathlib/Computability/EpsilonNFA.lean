@@ -275,7 +275,7 @@ def star : εNFA α (Option σ) :=
     | some c => match (p, q) with
       | (some p, some q) => P.step p c q
       | (_, _) => False
-  start := { none } ∪ (some '' P.start)
+  start := { none }
   accept := { none } ∪ (some '' P.accept)
 }
 
@@ -417,18 +417,81 @@ theorem step_mul_left_none (x : σ):
   x ∈ P.step s none ↔ Sum.inl x ∈ (P.mul Q).step (Sum.inl s) none := by
   constructor
   . intro h
-    have hh : Sum.inl x ∈ (Sum.inl '' P.step s none) := by
-      exact @mem_image_of_mem _ (σ ⊕ σ') Sum.inl _ _ h
+    apply mem_image_of_mem Sum.inl at h
     by_cases hs : s ∈ P.accept
     . rw [step_mul_left_none_accept _ _ _ hs]
       left
-      exact hh
+      exact h
     . rw [step_mul_left_not_accept_none _ _ _ hs]
-      exact hh
+      exact h
   . intro h
     unfold mul at h
     simp at h
     exact h
+
+@[simp]
+theorem step_star_none_none :
+  P.star.step none none = some '' P.start := by
+  ext x
+  unfold star
+  simp
+  cases x with
+  | none =>
+    simp
+    intro h
+    exact h
+  | some x =>
+    simp
+    rfl
+
+@[simp]
+theorem step_star_some_some (a : α) (x : σ)  :
+  P.star.step (some x) (some a) = some '' P.step x (some a) := by
+  ext y
+  unfold star
+  simp
+  cases y with
+  | none =>
+    simp
+    intro h
+    exact h
+  | some y =>
+    simp
+    rfl
+
+@[simp]
+theorem step_star_none_some (a : α) :
+  P.star.step none (some a) = ∅ := by
+  unfold star
+  simp
+  rfl
+
+theorem step_star_some_none_not_accept :
+  ∀ s ∉ P.accept, P.star.step (some s) none = some '' P.step s none := by
+  intro s hs
+  ext x
+  cases x with
+  | none =>
+    simp
+    intro h
+    exact h
+  | some x =>
+    unfold star
+    simp at *
+    sorry
+
+theorem step_star_some_none_accept :
+  ∀ s ∈ P.accept, P.star.step (some s) none = some '' P.step s none ∪ some '' P.start := by
+  intro s hs
+  ext x
+  cases x with
+  | none =>
+    simp
+    intro h
+    exact h
+  | some x =>
+    simp
+    sorry
 
 @[simp]
 theorem stepSet_one (s : Set σ) (a : α) : (1 : εNFA α σ).stepSet s a = ∅ := by
@@ -451,6 +514,8 @@ theorem start_char [DecidableEq α] (a : α) : (char a).start = { none } := rfl
 @[simp]
 theorem start_mul : (P.mul Q).start = (Sum.inl '' P.start) := rfl
 
+theorem start_star : P.star.start = { none } := rfl
+
 @[simp]
 theorem accept_zero : (0 : εNFA α σ).accept = ∅ :=
   rfl
@@ -465,8 +530,13 @@ theorem accept_one : (1 : εNFA α σ).accept = univ :=
 theorem accept_char [DecidableEq α] (a : α) : (char a).accept = { some () } := rfl
 
 @[simp]
-theorem accept_mul [DecidablePred (· ∈ P.accept)] :
+theorem accept_mul :
   (P.mul Q).accept = (Sum.inr '' Q.accept) :=
+  rfl
+
+@[simp]
+theorem accept_star :
+  P.star.accept = { none } ∪ some '' P.accept :=
   rfl
 
 @[simp]
