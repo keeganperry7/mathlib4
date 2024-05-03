@@ -317,7 +317,7 @@ theorem step_char_none_right [DecidableEq α] (a : α) (s : Option Unit) :
   | none => simp
   | some s => rfl
 
-@[simp]
+-- @[simp]
 theorem step_mul_left_not_accept_some (a : α) :
   ∀s ∉ P.accept, (P.mul Q).step (Sum.inl s) a = (Sum.inl '' P.step s a) := by
   intros _ _
@@ -330,7 +330,7 @@ theorem step_mul_left_not_accept_some (a : α) :
     intro h
     exact h
 
-@[simp]
+-- @[simp]
 theorem step_mul_left_not_accept_none :
   ∀ s ∉ P.accept, (P.mul Q).step (Sum.inl s) none = (Sum.inl '' P.step s none) := by
   intros s hs
@@ -358,7 +358,7 @@ theorem step_mul_left_some :
     intro h
     exact h
 
-@[simp]
+-- @[simp]
 theorem step_mul_left_none_accept :
   ∀s ∈ P.accept, (P.mul Q).step (Sum.inl s) none = (Sum.inl '' P.step s none) ∪ (Sum.inr '' Q.start) := by
   intros _ h
@@ -478,7 +478,12 @@ theorem step_star_some_none_not_accept :
   | some x =>
     unfold star
     simp at *
-    sorry
+    constructor
+    . intro h
+      cases h with
+      | inl h => exact h
+      | inr h => tauto
+    . tauto
 
 theorem step_star_some_none_accept :
   ∀ s ∈ P.accept, P.star.step (some s) none = some '' P.step s none ∪ some '' P.start := by
@@ -490,8 +495,42 @@ theorem step_star_some_none_accept :
     intro h
     exact h
   | some x =>
+    unfold star
     simp
-    sorry
+    constructor
+    . intro h
+      cases h with
+      | inl h => exact Or.inl h
+      | inr h => exact Or.inr h.right
+    . intro h
+      cases h with
+      | inl h => exact Or.inl h
+      | inr h => exact Or.inr ⟨hs, h⟩
+
+theorem step_star_some_none (s t : σ) :
+  s ∈ P.step t none → some s ∈ P.star.step (some t) none := by
+  by_cases h : t ∈ P.accept
+  . rw [step_star_some_none_accept _ _ h]
+    simp
+    tauto
+  . rw [step_star_some_none_not_accept _ _ h]
+    simp
+
+theorem step_star_some_none_none (s : σ) :
+  none ∉ P.star.step (some s) none := by
+  intro h
+  unfold star at h
+  simp at h
+  exact h
+
+theorem step_star_accept_start (s t : σ) :
+  s ∈ P.accept ∧ t ∈ P.start →
+  some t ∈ P.star.step (some s) none := by
+  intro h
+  rw [step_star_some_none_accept _ _ h.left]
+  simp
+  exact Or.inr h.right
+
 
 @[simp]
 theorem stepSet_one (s : Set σ) (a : α) : (1 : εNFA α σ).stepSet s a = ∅ := by
@@ -514,6 +553,7 @@ theorem start_char [DecidableEq α] (a : α) : (char a).start = { none } := rfl
 @[simp]
 theorem start_mul : (P.mul Q).start = (Sum.inl '' P.start) := rfl
 
+@[simp]
 theorem start_star : P.star.start = { none } := rfl
 
 @[simp]
@@ -1335,6 +1375,95 @@ theorem accepts_mul : (P.mul Q).accepts = P.accepts * Q.accepts := by
       refine' ⟨q, hq, _⟩
       apply eval_mul_left_right_split
       exact ⟨hp, ha, hb⟩
+
+theorem εClosure_star_none (S : Set (Option σ)) :
+  none ∈ P.star.εClosure S ↔ none ∈ S := by
+  constructor
+  . intro h
+    cases h with
+    | base _ hs => exact hs
+    | step s _ h hs =>
+      match s with
+      | none => simp at h
+      | some s =>
+        absurd h
+        apply step_star_some_none_none
+  . intro h
+    simp at *
+    exact εClosure.base none h
+
+@[simp]
+theorem εClosure_star_none' (S : Set σ) :
+  none ∉ P.star.εClosure (some '' S) := by
+  rw [εClosure_star_none]
+  simp
+
+theorem εClosure_star_not_accept (S : Set σ) :
+  (∀ p ∈ P.accept, p ∉ P.εClosure S) → P.star.εClosure (some '' S) = some '' P.εClosure S := by
+  intro h
+  ext x
+  constructor
+  . intro h
+    induction h with
+    | base s hs =>
+      simp at *
+      match hs with
+      | ⟨x, hx, hs⟩ =>
+        exact ⟨x, εClosure.base _ hx, hs⟩
+    | step s t ht hs ih =>
+      simp at *
+      match ih with
+      | ⟨k, ih, hs⟩ =>
+        rw [←hs] at ht
+        have hk' : k ∉ P.accept := by
+          contrapose h
+          simp at *
+          exact ⟨k, h, ih⟩
+        rw [step_star_some_none_not_accept P k hk'] at ht
+        simp at ht
+        match ht with
+        | ⟨x, hx, ht⟩ =>
+          exact ⟨x, εClosure.step k x hx ih, ht⟩
+  . intro h
+    simp at h
+    match h with
+    | ⟨k, hk, hx⟩ =>
+      induction hk generalizing x with
+      | base s hs =>
+        apply mem_image_of_mem some at hs
+        rw [hx] at hs
+        exact εClosure.base _ hs
+      | step s t ht hs ih =>
+        have hs := ih (some s) ⟨s, hs, rfl⟩ rfl
+        apply step_star_some_none at ht
+        rw [hx] at ht
+        exact εClosure.step _ _ ht hs
+
+theorem εClosure_star_some (s : σ) (S : Set σ) :
+  s ∈ P.εClosure S → some s ∈ P.star.εClosure (some '' S) := by
+  intro h
+  induction h with
+  | base _ hs =>
+    apply mem_image_of_mem some at hs
+    exact εClosure.base _ hs
+  | step t k hs _ ih =>
+    apply step_star_some_none at hs
+    exact εClosure.step _ _ hs ih
+
+theorem εClosure_star_accept (s : σ) (S : Set σ) :
+  (∃ p ∈ P.accept, p ∈ P.εClosure S) →
+  (s ∈ P.εClosure P.start → some s ∈ P.star.εClosure (some '' S)) := by
+  intro h hs
+  induction hs with
+  | base s hs =>
+    match h with
+    | ⟨x, hx, hx'⟩ =>
+      have hs := step_star_accept_start _ _ _ ⟨hx, hs⟩
+      apply εClosure_star_some at hx'
+      exact εClosure.step _ _ hs hx'
+  | step s t ht _ ih =>
+    apply step_star_some_none at ht
+    exact εClosure.step _ _ ht ih
 
 @[simp]
 theorem accepts_star : P.star.accepts = P.accepts∗ := by
