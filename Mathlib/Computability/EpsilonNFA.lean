@@ -523,6 +523,29 @@ theorem step_star_some_none_none (s : σ) :
   simp at h
   exact h
 
+@[simp]
+theorem step_star_to_none (s : Option σ) (a : Option α) :
+  none ∉ P.star.step s a := by
+  intro h
+  unfold star at h
+  match a with
+  | none =>
+    match s with
+    | none =>
+      simp at h
+      exact h
+    | some _ =>
+      simp at h
+      exact h
+  | some _ =>
+    match s with
+    | none =>
+      simp at h
+      exact h
+    | some _ =>
+      simp at h
+      exact h
+
 theorem step_star_accept_start (s t : σ) :
   s ∈ P.accept ∧ t ∈ P.start →
   some t ∈ P.star.step (some s) none := by
@@ -531,6 +554,10 @@ theorem step_star_accept_start (s t : σ) :
   simp
   exact Or.inr h.right
 
+theorem step_star_start (s : σ) :
+  s ∈ P.start →
+  some s ∈ P.star.step none none := by
+  simp
 
 @[simp]
 theorem stepSet_one (s : Set σ) (a : α) : (1 : εNFA α σ).stepSet s a = ∅ := by
@@ -1376,6 +1403,7 @@ theorem accepts_mul : (P.mul Q).accepts = P.accepts * Q.accepts := by
       apply eval_mul_left_right_split
       exact ⟨hp, ha, hb⟩
 
+@[simp]
 theorem εClosure_star_none (S : Set (Option σ)) :
   none ∈ P.star.εClosure S ↔ none ∈ S := by
   constructor
@@ -1465,10 +1493,233 @@ theorem εClosure_star_accept (s : σ) (S : Set σ) :
     apply step_star_some_none at ht
     exact εClosure.step _ _ ht ih
 
+theorem εClosure_star_accept' (p q : σ) (S : Set (Option σ)) :
+  p ∈ P.accept ∧ q ∈ P.εClosure P.start ∧ some p ∈ P.star.εClosure S → some q ∈ P.star.εClosure S := by
+  intro ⟨hp, hq, h⟩
+  induction hq with
+  | base q hq =>
+    have hq := step_star_accept_start _ _ _ ⟨hp, hq⟩
+    exact εClosure.step (some p) (some q) hq h
+  | step s t ht _ ih =>
+    apply step_star_some_none at ht
+    exact εClosure.step (some s) (some t) ht ih
+
+@[simp]
+theorem εClosure_star_start (x : σ) :
+  x ∈ P.εClosure P.start ↔ some x ∈ P.star.εClosure P.star.start := by
+  constructor
+  . intro h
+    induction h with
+    | base s hs =>
+      simp
+      apply step_star_start at hs
+      exact εClosure.step none (some s) hs ((subset_εClosure _ { none }) (mem_singleton none))
+    | step s t ht hs ih =>
+      simp at *
+      apply step_star_some_none at ht
+      exact εClosure.step (some s) (some t) ht ih
+  . intro h
+    apply mem_fun at h
+    match h with
+    | ⟨y, h, hy⟩ =>
+      induction h generalizing x with
+      | base s hs =>
+        rw [←hy] at hs
+        simp at hs
+      | step s t ht hs ih =>
+        rw [←hy] at ht
+        cases s with
+        | none =>
+          simp at ht
+          exact εClosure.base _ ht
+        | some s =>
+          by_cases h : s ∈ P.accept
+          . rw [step_star_some_none_accept _ _ h] at ht
+            simp at ht
+            cases ht with
+            | inl ht =>
+              have ih := ih s ⟨s, hs, rfl⟩ rfl
+              exact εClosure.step s x ht ih
+            | inr ht => exact εClosure.base _ ht
+          . rw [step_star_some_none_not_accept _ _ h] at ht
+            simp at ht
+            have ih := ih s ⟨s, hs, rfl⟩ rfl
+            exact εClosure.step s x ht ih
+
+theorem eval_star (s : σ) (x : List α) :
+  s ∈ P.eval x → some s ∈ P.star.eval x := by
+  intro h
+  induction x using List.reverseRecOn generalizing s with
+  | nil =>
+    simp at *
+    exact h
+  | append_singleton xs x ih =>
+    simp at h
+    match h with
+    | ⟨t, ht, hs⟩ =>
+      have ih := ih t ht
+      simp
+      apply εClosure_star_some at hs
+      refine' ⟨some t, ih, _⟩
+      rw [step_star_some_some]
+      exact hs
+
+@[simp]
+theorem eval_star_none (x : List α) :
+  none ∈ P.star.eval x ↔ x = [] := by
+  cases x using List.reverseRecOn with
+  | nil => simp
+  | append_singleton xs x => simp
+
+theorem eval_star_accept (x : List α) (p : σ) (q : σ) :
+  p ∈ P.accept ∧ q ∈ P.εClosure P.start ∧ some p ∈ P.star.eval x → some q ∈ P.star.eval x := by
+  intro ⟨hp, hq, hx⟩
+  cases x using List.reverseRecOn with
+  | nil =>
+    simp at *
+    exact hq
+  | append_singleton xs x =>
+    simp at hx
+    match hx with
+    | ⟨t, ht, hx⟩ =>
+      have hq := εClosure_star_accept' _ _ _ _ ⟨hp, hq, hx⟩
+      simp
+      refine' ⟨t, ht, hq⟩
+
+theorem eval_star_split (a b : List α) (p q : σ) :
+  p ∈ P.accept ∧ p ∈ P.eval a ∧ q ∈ P.eval b → some q ∈ P.star.eval (a ++ b) := by
+  intro ⟨hp, ha, hb⟩
+  induction b using List.reverseRecOn generalizing q with
+  | nil =>
+    simp at *
+    apply eval_star at ha
+    apply eval_star_accept
+    simp
+    exact ⟨hp, hb, ha⟩
+  | append_singleton bs b ih =>
+    simp at *
+    match hb with
+    | ⟨t, ht, hq⟩ =>
+      have ih := ih t ht
+      apply εClosure_star_some at hq
+      rw [←step_star_some_some] at hq
+      rw [←List.append_assoc]
+      rw [eval_append_singleton]
+      simp
+      exact ⟨t, ih, hq⟩
+
+theorem eval_star_split' (a b : List α) (p : Option σ) (q : σ) :
+  p ∈ P.star.accept ∧ p ∈ P.star.eval a ∧ some q ∈ P.star.eval b → some q ∈ P.star.eval (a ++ b) := by
+  intro ⟨hp, ha, hb⟩
+  induction b using List.reverseRecOn generalizing q with
+  | nil =>
+    simp at *
+    cases hp with
+    | inl hp =>
+      rw [hp] at ha
+      simp at ha
+      rw [ha]
+      simp
+      exact hb
+    | inr hp =>
+      rw [←start_star] at hb
+      rw [←εClosure_star_start] at hb
+      match hp with
+      | ⟨p', hp', hp⟩ =>
+        rw [←hp] at ha
+        apply eval_star_accept
+        exact ⟨hp', hb, ha⟩
+  | append_singleton as a' ih =>
+    simp at hp
+    cases hp with
+    | inl hp =>
+      rw [hp] at ha
+      simp at ha
+      rw [ha, List.nil_append]
+      exact hb
+    | inr hp =>
+      simp at hb
+      match hb with
+      | ⟨t, ht, hq⟩ =>
+        cases t with
+        | none => simp at *
+        | some t =>
+          have ih := ih t ht
+          rw [←List.append_assoc, eval_append_singleton]
+          simp
+          exact ⟨t, ih, hq⟩
+
+theorem accepts_star_empty :
+  [] ∈ P.star.accepts := by
+  simp
+
+theorem accepts_star_accepts (x : List α) :
+  x ∈ P.accepts → x ∈ P.star.accepts := by
+  intro h
+  simp at *
+  match h with
+  | ⟨s, hs, hx⟩ =>
+    rw [←eval] at hx
+    apply eval_star at hx
+    right
+    refine' ⟨s, hs, hx⟩
+
+theorem accepts_star_accepts_split (a b : List α) :
+  a ∈ P.accepts ∧ b ∈ P.accepts → a ++ b ∈ P.star.accepts := by
+  intro h
+  simp at *
+  match h with
+  | ⟨⟨p, hp, ha⟩, q, hq, hb⟩ =>
+    right
+    refine' ⟨q, hq, _⟩
+    apply eval_star_split
+    exact ⟨hp, ha, hb⟩
+
+theorem accepts_star_accepts_split' (a b : List α) :
+  a ∈ P.star.accepts ∧ b ∈ P.star.accepts → a ++ b ∈ P.star.accepts := by
+  intro h
+  cases a using List.reverseRecOn with
+  | nil =>
+    rw [List.nil_append]
+    exact h.right
+  | append_singleton as a =>
+    cases b using List.reverseRecOn with
+    | nil =>
+      rw [List.append_nil]
+      exact h.left
+    | append_singleton bs b =>
+      simp at *
+      match h with
+      | ⟨⟨p, hp, ha⟩, q, hq, hb⟩ =>
+        right
+        refine' ⟨q, hq, _⟩
+        rw [List.append_cons]
+        apply eval_star_split' _ _ _ (some p)
+        rw [←mem_stepSet_iff, ←evalFrom_append_singleton, ←start_star, ←eval] at ha hb
+        refine' ⟨_, ha, hb⟩
+        simp
+        exact hp
+
 @[simp]
 theorem accepts_star : P.star.accepts = P.accepts∗ := by
   ext x
   rw [Language.mem_kstar]
-  sorry
+  constructor
+  . sorry
+  .
+    intro ⟨L, hx, hy⟩
+    induction L generalizing x with
+    | nil =>
+      simp at hx
+      rw [hx]
+      simp
+    | cons l ls ih =>
+      unfold List.join at hx
+      rw [List.forall_mem_cons] at hy
+      have ih := ih (List.join ls) rfl hy.right
+      have hl := accepts_star_accepts _ _ hy.left
+      rw [hx]
+      apply accepts_star_accepts_split'
+      exact ⟨hl, ih⟩
 
 end εNFA
