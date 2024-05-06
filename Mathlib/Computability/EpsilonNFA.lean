@@ -245,8 +245,6 @@ def char [DecidableEq α] (a : α) : εNFA α (Option Unit) :=
     accept := { some () }
   }
 
-def add : εNFA α (Set σ × Set σ') := (P.toNFA.toDFA.add Q.toNFA.toDFA).toNFA.toεNFA
-
 def mul : εNFA α (σ ⊕ σ') :=
 {
   step := fun p c q =>
@@ -691,12 +689,6 @@ theorem accepts_char [DecidableEq α] : (char a).accepts = {[a]} := by
   . cases xs
     . simp
     . simp
-
-@[simp]
-theorem accepts_add : (P.add Q).accepts = P.accepts + Q.accepts := by
-  rw [add, NFA.toεNFA_correct, DFA.toNFA_correct]
-  repeat rw [←toNFA_correct, ←NFA.toDFA_correct]
-  rw [←DFA.accepts_add P.toNFA.toDFA Q.toNFA.toDFA]
 
 theorem mem_fun (f : σ → σ') (p : σ) (S : Set σ') :
   f p ∈ S → ∃ x ∈ S, f p = x := by
@@ -1633,7 +1625,7 @@ theorem eval_star_accept (x : List α) (p : σ) (q : σ) :
     | ⟨t, ht, hx⟩ =>
       have hq := εClosure_star_accept' _ _ _ _ ⟨hp, hq, hx⟩
       simp
-      refine' ⟨t, ht, hq⟩
+      exact ⟨t, ht, hq⟩
 
 -- theorem eval_star_split (a b : List α) (p q : σ) :
 --   p ∈ P.accept ∧ p ∈ P.eval a ∧ q ∈ P.eval b → some q ∈ P.star.eval (a ++ b) := by

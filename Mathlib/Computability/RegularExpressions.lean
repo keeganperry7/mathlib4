@@ -447,8 +447,9 @@ theorem matches'_map (f : α → β) :
 def toεNFA : RegularExpression α → Σ σ , εNFA α σ
   | 0 => ⟨Empty, 0⟩
   | 1 => ⟨Unit, 1⟩
-  | char a => ⟨_, εNFA.char a⟩
-  | P + Q => ⟨_, P.toεNFA.2.add Q.toεNFA.2⟩
+  | char a => ⟨Option Unit, εNFA.char a⟩
+  | P + Q =>
+    ⟨_, (P.toεNFA.2.toNFA.toDFA.add Q.toεNFA.2.toNFA.toDFA).toNFA.toεNFA⟩
   | comp P Q => ⟨_, P.toεNFA.2.mul Q.toεNFA.2⟩
   | star P => let ⟨σ, P'⟩ := P.toεNFA ; ⟨Option σ, P'.star⟩
 
@@ -459,8 +460,11 @@ theorem toεNFA_correct : ∀(R : RegularExpression α), R.toεNFA.2.accepts = R
     rw [matches'_char]
     exact εNFA.accepts_char
   | P + Q => by
-    rw [matches'_add, ←toεNFA_correct, ←toεNFA_correct]
-    exact εNFA.accepts_add _ _
+    have pq : (P + Q).toεNFA.2 =
+      (P.toεNFA.2.toNFA.toDFA.add Q.toεNFA.2.toNFA.toDFA).toNFA.toεNFA := rfl
+    rw [pq, NFA.toεNFA_correct, DFA.toNFA_correct, matches'_add]
+    repeat rw [←toεNFA_correct, ←εNFA.toNFA_correct, ←NFA.toDFA_correct]
+    exact DFA.accepts_add _ _
   | comp P Q => by
     rw [comp_def, matches'_mul, ←toεNFA_correct, ←toεNFA_correct]
     exact εNFA.accepts_mul _ _
