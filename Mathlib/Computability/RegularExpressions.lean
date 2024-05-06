@@ -447,9 +447,8 @@ theorem matches'_map (f : α → β) :
 def toεNFA : RegularExpression α → Σ σ , εNFA α σ
   | 0 => ⟨Empty, 0⟩
   | 1 => ⟨Unit, 1⟩
-  | char a => ⟨Option Unit, εNFA.char a⟩
-  | P + Q =>
-    ⟨_, (P.toεNFA.2.toNFA.toDFA.add Q.toεNFA.2.toNFA.toDFA).toNFA.toεNFA⟩
+  | char a => ⟨_, εNFA.char a⟩
+  | P + Q => ⟨_, (P.toεNFA.2.toNFA.toDFA.add Q.toεNFA.2.toNFA.toDFA).toNFA.toεNFA⟩
   | comp P Q => ⟨_, P.toεNFA.2.mul Q.toεNFA.2⟩
   | star P => let ⟨σ, P'⟩ := P.toεNFA ; ⟨Option σ, P'.star⟩
 
