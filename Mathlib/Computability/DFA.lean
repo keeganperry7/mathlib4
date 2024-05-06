@@ -188,11 +188,11 @@ def add : DFA α (σ × σ') :=
 }
 
 @[simp]
-theorem step_add (s t a) : (P.add Q).step (s, t) a = (P.step s a, Q.step t a) :=
+theorem step_add (s : σ) (t : σ') (a : α) : (P.add Q).step (s, t) a = (P.step s a, Q.step t a) :=
   rfl
 
 @[simp]
-theorem step_inter (s t a) : (P.inter Q).step (s, t) a = (P.step s a, Q.step t a) :=
+theorem step_inter (s : σ) (t : σ') (a : α) : (P.inter Q).step (s, t) a = (P.step s a, Q.step t a) :=
   rfl
 
 @[simp]
@@ -202,22 +202,22 @@ theorem start_add : (P.add Q).start = (P.start, Q.start) := rfl
 theorem start_inter: (P.inter Q).start = (P.start, Q.start) := rfl
 
 @[simp]
-theorem accept_add (s t) : (s, t) ∈ (P.add Q).accept ↔ s ∈ P.accept ∨ t ∈ Q.accept :=
+theorem accept_add (s : σ) (t : σ') : (s, t) ∈ (P.add Q).accept ↔ s ∈ P.accept ∨ t ∈ Q.accept :=
   Iff.refl _
 
 @[simp]
-theorem accept_inter (s t) : (s, t) ∈ (P.inter Q).accept ↔ s ∈ P.accept ∧ t ∈ Q.accept :=
+theorem accept_inter (s : σ) (t : σ') : (s, t) ∈ (P.inter Q).accept ↔ s ∈ P.accept ∧ t ∈ Q.accept :=
   Iff.refl _
 
 @[simp]
-theorem evalFrom_add (s t) (a : List α) :
+theorem evalFrom_add (s : σ) (t : σ') (a : List α) :
   evalFrom (P.add Q) (s, t) a = (evalFrom P s a, evalFrom Q t a) := by
   induction a generalizing s t with
   | nil => simp
   | cons _ _ ih => simp [ih]
 
 @[simp]
-theorem evalFrom_inter(s t) (a : List α) :
+theorem evalFrom_inter (s : σ) (t : σ') (a : List α) :
   evalFrom (P.inter Q) (s, t) a = (evalFrom P s a, evalFrom Q t a) := by
   induction a generalizing s t with
   | nil => simp
